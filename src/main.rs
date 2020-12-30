@@ -1,10 +1,12 @@
 use anyhow::{bail, Result};
 use glob::glob;
-use log::warn;
+use log::Level::Debug;
+use log::{debug, log_enabled, warn};
 use quick_xml::de::from_reader;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fs::canonicalize;
 use std::fs::File;
 use std::io::BufReader;
 use std::iter::FromIterator;
@@ -16,7 +18,7 @@ use structopt::StructOpt;
 struct Opt {
     #[structopt(short, long)]
     debug: bool,
-    #[structopt(long)]
+    #[structopt(long, required = true)]
     tests_glob: Vec<String>,
     #[structopt(long)]
     node_index: usize,
@@ -55,7 +57,7 @@ fn expand_globs(patterns: &Vec<String>) -> Result<Vec<PathBuf>> {
 
     for pattern in patterns {
         for path in glob(&pattern)? {
-            files.insert(path?);
+            files.insert(canonicalize(path?)?);
         }
     }
 
@@ -136,6 +138,19 @@ fn main() -> Result<()> {
         warn!("Timing data not found: {}", test_file.to_str().unwrap());
         let len = nodes.len();
         nodes.get_mut(i % len).unwrap().add(test_file, 0.0);
+    }
+
+    if log_enabled!(Debug) {
+        for (i, node) in nodes.iter().enumerate() {
+            debug!(
+                "node {}: recorded_total_time: {}",
+                i, node.recorded_total_time
+            );
+
+            for test_file in node.test_files.iter() {
+                debug!("{}", test_file.to_str().unwrap());
+            }
+        }
     }
 
     for test_file in nodes.get(args.node_index).unwrap().test_files.iter() {
