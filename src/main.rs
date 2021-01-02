@@ -6,6 +6,7 @@ use quick_xml::de::from_reader;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::fs::canonicalize;
 use std::fs::File;
 use std::io::BufReader;
@@ -29,15 +30,59 @@ struct Opt {
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
-struct Testsuites {
-    #[serde(rename = "testsuite", default)]
-    testsuites: Vec<Testsuite>,
+struct TestResultXml {
+    #[serde(rename = "testsuite", alias = "testcase", default)]
+    test_results: Vec<TestResult>,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
-struct Testsuite {
-    filepath: PathBuf,
+struct TestResult {
+    #[serde(alias = "filepath", default)]
+    file: Option<PathBuf>,
     time: f64,
+    #[serde(rename = "testsuite", alias = "testcase", default)]
+    test_results: Vec<TestResult>,
+}
+
+struct TestResultData {
+    file: Option<PathBuf>,
+    time: f64,
+}
+
+impl IntoIterator for TestResultXml {
+    type IntoIter = IntoIter;
+    type Item = TestResultData;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            remaining: self.test_results.into_iter().collect(),
+        }
+    }
+}
+
+struct IntoIter {
+    remaining: VecDeque<TestResult>,
+}
+
+impl Iterator for IntoIter {
+    type Item = TestResultData;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.remaining.pop_front().and_then(
+            |TestResult {
+                 file,
+                 time,
+                 test_results,
+             }| {
+                self.remaining.extend(test_results);
+
+                Some(TestResultData {
+                    file: file,
+                    time: time,
+                })
+            },
+        )
+    }
 }
 
 struct Node<'a> {
@@ -80,13 +125,19 @@ fn get_test_file_results(
 
     for xml_path in expand_globs(&vec![String::from(xml_glob)])? {
         let reader = BufReader::new(File::open(xml_path)?);
-        let testsuites: Testsuites = from_reader(reader)?;
+        let test_result_xml: TestResultXml = from_reader(reader)?;
 
-        for suite in testsuites.testsuites {
-            let total_time = test_file_results.entry(suite.filepath).or_insert(0.0);
-            *total_time += suite.time;
+        for TestResultData { file, time } in test_result_xml {
+            file.map(|f| {
+                canonicalize(f).map(|normalized_file| {
+                    let total_time = test_file_results.entry(normalized_file).or_insert(0.0);
+                    *total_time += time;
+                })
+            });
         }
     }
+
+    debug!("{:?}", test_file_results);
 
     Ok(test_file_results)
 }
@@ -159,3 +210,10 @@ fn main() -> Result<()> {
 
     Ok(())
 }
+
+/*
+TODOS:
+
+- Test <testsuites><testsuite file="/foo" time="0.1"></testsuite></testsuites>
+- Test <testsuite><testcase file="./foo" time="0.1"></testcase></testsuite>
+*/
