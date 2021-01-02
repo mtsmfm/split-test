@@ -1,5 +1,7 @@
 # split-test
 
+split-test splits tests into multiple groups based on timing data to run tests in parallel.
+
 ## Installation
 
 Download binary from GitHub releases page:
