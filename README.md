@@ -31,13 +31,13 @@ jobs:
           branch: main
           name: test-report
           workflow: ci.yml
-          path: reports
+          path: report
         # Use continue-on-error to run tests even if test-report is not uploaded
         continue-on-error: true
       - uses: actions/upload-artifact@v2
         with:
           name: test-report-tmp
-          path: reports
+          path: report
 
   test:
     needs: download-test-report
@@ -54,17 +54,17 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: test-report-tmp
-          path: reports
+          path: report-tmp
         # Use continue-on-error to run tests even if test-report is not uploaded
         continue-on-error: true
       - run: |
           curl -L --out split-test https://github.com/mtsmfm/split-test/releases/download/v0.3.0/split-test-x86_64-unknown-linux-gnu
           chmod +x split-test
-      - run: bin/rspec --format progress --format RspecJunitFormatter --out reports/rspec-${{ matrix.node_index }}.xml $(./split-test --junit-xml-report-dir reports --node-index ${{ matrix.node_index }} --node-total 3 --tests-glob 'spec/**/*_spec.rb' --debug)
+      - run: bin/rspec --format progress --format RspecJunitFormatter --out report/rspec-${{ matrix.node_index }}.xml $(./split-test --junit-xml-report-dir report-tmp --node-index ${{ matrix.node_index }} --node-total 3 --tests-glob 'spec/**/*_spec.rb' --debug)
       - uses: actions/upload-artifact@v2
         with:
           name: test-report
-          path: reports
+          path: report
           if-no-files-found: error
         # Upload test-report on main branch only to avoid conflicting test report
         if: github.ref == 'refs/heads/main'
