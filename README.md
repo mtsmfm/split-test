@@ -10,8 +10,68 @@ https://github.com/mtsmfm/split-test/releases
 
 ## Usage
 
+split-test command outputs test groups to stdout depends on its executing time.
+
+Let's say we have three test files `spec/a_spec.rb`, `spec/b_spec.rb`, `spec/c_spec.rb` and the following test report `report/report.xml`.
+
+```xml
+<testsuites>
+<testsuite classname="all" name="all" time="18.0">
+<testcase classname="a" name="a" file="./spec/a_spec.rb" time="5.0"></testcase>
+<testcase classname="b" name="b" file="./spec/b_spec.rb" time="10.0"></testcase>
+<testcase classname="c" name="c" file="./spec/c_spec.rb" time="3.0"></testcase>
+</testsuite>
+</testsuites>
 ```
-$ split-test --junit-xml-report-dir reports --node-index 0 --node-total 3 --tests-glob 'spec/**/*_spec.rb' --debug
+
+If you run them in series, it'll take 18 seconds.
+
+You can use `split-test` to split them into two groups and run in parallel.
+
+For node 0:
+
+```
+$ split-test --junit-xml-report-dir report --node-index 0 --node-total 2 --tests-glob 'spec/**/*_spec.rb'
+```
+
+You'll get the following result on stdout:
+
+```
+/path/to/spec/a_spec.rb
+/path/to/spec/c_spec.rb
+```
+
+For node 1:
+
+```
+$ split-test --junit-xml-report-dir . --node-index 1 --node-total 2 --tests-glob 'spec/**/*_spec.rb'
+```
+
+You'll get:
+
+```
+/path/to/spec/b_spec.rb
+```
+
+Please be sure to increment `--node-index` arg.
+
+You can use `--debug` option to make sure how it's grouped:
+
+```
+$ split-test --junit-xml-report-dir . --node-index 1 --node-total 2 --tests-glob 'spec/**/*_spec.rb' --debug
+[2021-01-09T02:55:04Z DEBUG split_test] {"/path/to/spec/b_spec.rb": 10.0, "/path/to/spec/c_spec.rb": 3.0, "/path/to/spec/a_spec.rb": 5.0}
+[2021-01-09T02:55:04Z DEBUG split_test] node 0: recorded_total_time: 8
+[2021-01-09T02:55:04Z DEBUG split_test] /path/to/spec/a_spec.rb
+[2021-01-09T02:55:04Z DEBUG split_test] /path/to/spec/c_spec.rb
+[2021-01-09T02:55:04Z DEBUG split_test] node 1: recorded_total_time: 10
+[2021-01-09T02:55:04Z DEBUG split_test] /path/to/spec/b_spec.rb
+/path/to/spec/b_spec.rb
+```
+
+Pass the result to test command to run grouped tests:
+
+```
+$ rspec $(split-test --junit-xml-report-dir report --node-index 0 --node-total 2 --tests-glob 'spec/**/*_spec.rb' --debug)
 ```
 
 ### GitHub Actions
@@ -73,6 +133,8 @@ jobs:
 You can find working example on https://github.com/mtsmfm/split-test-example
 
 ## Note
+
+split-test is inspired by [`circleci tests split` command](https://circleci.com/docs/2.0/parallelism-faster-jobs/).
 
 split-test assumes test report has additional attribute `file` or `filepath`.
 
