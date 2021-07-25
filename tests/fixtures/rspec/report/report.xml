@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="rspec" tests="3" skipped="0" failures="0" errors="0" time="1.803586" timestamp="2021-07-25T15:27:35+00:00" hostname="c5d90973371e">
+<properties>
+<property name="seed" value="64432"/>
+</properties>
+<testcase classname="a_spec" name="" file="./a_spec.rb" time="0.500725"></testcase>
+<testcase classname="b_spec" name="" file="./b_spec.rb" time="1.001195"></testcase>
+<testcase classname="c_spec" name="" file="./c_spec.rb" time="0.300499"></testcase>
+</testsuite>

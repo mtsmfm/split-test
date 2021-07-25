@@ -1,0 +1,6 @@
+#! /usr/bin/env bash
+
+cat <<-SHELL | docker run --rm -v $(realpath $(dirname $(dirname $0))):/tmp/run -w /tmp/run -u $UID -i ruby:3.0 bash
+bundle install
+bundle exec rspec . --format RspecJunitFormatter --out report/report.xml
+SHELL
