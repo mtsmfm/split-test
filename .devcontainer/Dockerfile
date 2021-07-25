@@ -1,4 +1,4 @@
-FROM rust:1.48-buster
+FROM rust:1.53-buster
 
 ARG USERNAME=app
 ARG USER_UID=1000
