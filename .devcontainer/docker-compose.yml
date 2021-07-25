@@ -8,6 +8,8 @@ services:
     volumes:
       - ..:/app:cached
       - dotconfig:/home/app/.config
+    env_file:
+      - app.env
 
 volumes:
   app:
