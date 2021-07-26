@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="a" filepath="a_test.rb" skipped="0" failures="0" errors="0" tests="1" assertions="0" time="0.5007521999941673">
+    <testcase name="test_0001_anonymous" lineno="2" classname="a" assertions="0" time="0.5007521999941673">
+    </testcase>
+  </testsuite>
+</testsuites>
