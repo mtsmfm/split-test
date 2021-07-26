@@ -20,7 +20,8 @@ fn test_rspec_report() -> Result<(), Box<dyn std::error::Error>> {
         .success()
         .stdout(predicate::str::contains("a_spec.rb"))
         .stdout(predicate::str::contains("b_spec.rb").not())
-        .stdout(predicate::str::contains("c_spec.rb"));
+        .stdout(predicate::str::contains("c_spec.rb"))
+        .stderr(predicate::str::is_empty());
 
     cmd = Command::cargo_bin("split-test")?;
 
@@ -38,7 +39,8 @@ fn test_rspec_report() -> Result<(), Box<dyn std::error::Error>> {
         .success()
         .stdout(predicate::str::contains("a_spec.rb").not())
         .stdout(predicate::str::contains("b_spec.rb"))
-        .stdout(predicate::str::contains("c_spec.rb").not());
+        .stdout(predicate::str::contains("c_spec.rb").not())
+        .stderr(predicate::str::is_empty());
 
     Ok(())
 }
@@ -61,7 +63,8 @@ fn test_minitest_report() -> Result<(), Box<dyn std::error::Error>> {
         .success()
         .stdout(predicate::str::contains("a_test.rb"))
         .stdout(predicate::str::contains("b_test.rb").not())
-        .stdout(predicate::str::contains("c_test.rb"));
+        .stdout(predicate::str::contains("c_test.rb"))
+        .stderr(predicate::str::is_empty());
 
     cmd = Command::cargo_bin("split-test")?;
 
@@ -79,7 +82,8 @@ fn test_minitest_report() -> Result<(), Box<dyn std::error::Error>> {
         .success()
         .stdout(predicate::str::contains("a_test.rb").not())
         .stdout(predicate::str::contains("b_test.rb"))
-        .stdout(predicate::str::contains("c_test.rb").not());
+        .stdout(predicate::str::contains("c_test.rb").not())
+        .stderr(predicate::str::is_empty());
 
     Ok(())
 }
