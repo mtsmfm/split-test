@@ -3,7 +3,5 @@
   "service": "app",
   "workspaceFolder": "/app",
   "name": "${localWorkspaceFolderBasename}",
-  "extensions": [
-    "esbenp.prettier-vscode",
-  ]
+  "extensions": ["esbenp.prettier-vscode", "matklad.rust-analyzer"]
 }
