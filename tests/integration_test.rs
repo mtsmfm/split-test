@@ -87,3 +87,44 @@ fn test_minitest_report() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[test]
+fn test_cypress_report() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("split-test")?;
+
+    cmd.current_dir("tests/fixtures/cypress")
+        .arg("--junit-xml-report-dir")
+        .arg("report")
+        .arg("--node-index")
+        .arg("0")
+        .arg("--node-total")
+        .arg("2")
+        .arg("--tests-glob")
+        .arg("**/*_spec.js");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("a_spec.js"))
+        .stdout(predicate::str::contains("b_spec.js").not())
+        .stdout(predicate::str::contains("c_spec.js"));
+
+    cmd = Command::cargo_bin("split-test")?;
+
+    cmd.current_dir("tests/fixtures/cypress")
+        .arg("--junit-xml-report-dir")
+        .arg("report")
+        .arg("--node-index")
+        .arg("1")
+        .arg("--node-total")
+        .arg("2")
+        .arg("--tests-glob")
+        .arg("**/*_spec.js");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("a_spec.js").not())
+        .stdout(predicate::str::contains("b_spec.js"))
+        .stdout(predicate::str::contains("c_spec.js").not());
+
+    Ok(())
+}
