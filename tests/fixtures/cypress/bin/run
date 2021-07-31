@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+
+# docker run --rm -v $(realpath $(dirname $(dirname $0))):/tmp/run -w /tmp/run -u $UID -i cypress/included:8.0.0
+
+cat <<-SHELL | docker run --rm -v $(realpath $(dirname $(dirname $0))):/tmp/run -w /tmp/run -u $UID -i --entrypoint bash cypress/included:8.0.0
+cypress run
+SHELL

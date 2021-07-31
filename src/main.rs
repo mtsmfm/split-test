@@ -6,7 +6,6 @@ use quick_xml::de::from_reader;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::collections::VecDeque;
 use std::fs::canonicalize;
 use std::fs::File;
 use std::io::BufReader;
@@ -31,58 +30,25 @@ struct Opt {
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct TestResultXml {
-    #[serde(rename = "testsuite", alias = "testcase", default)]
-    test_results: Vec<TestResult>,
+    #[serde(rename = "testsuite", default)]
+    test_suites: Option<Vec<TestSuite>>,
+    #[serde(rename = "testcase", default)]
+    test_cases: Option<Vec<TestCase>>,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
-struct TestResult {
+struct TestSuite {
+    #[serde(rename = "testcase", default)]
+    test_cases: Vec<TestCase>,
     #[serde(alias = "filepath", default)]
     file: Option<PathBuf>,
     time: f64,
-    #[serde(rename = "testsuite", alias = "testcase", default)]
-    test_results: Vec<TestResult>,
 }
-
-struct TestResultData {
+#[derive(Debug, Deserialize, PartialEq)]
+struct TestCase {
+    #[serde(alias = "filepath", default)]
     file: Option<PathBuf>,
     time: f64,
-}
-
-impl IntoIterator for TestResultXml {
-    type IntoIter = IntoIter;
-    type Item = TestResultData;
-
-    fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            remaining: self.test_results.into_iter().collect(),
-        }
-    }
-}
-
-struct IntoIter {
-    remaining: VecDeque<TestResult>,
-}
-
-impl Iterator for IntoIter {
-    type Item = TestResultData;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.remaining.pop_front().and_then(
-            |TestResult {
-                 file,
-                 time,
-                 test_results,
-             }| {
-                self.remaining.extend(test_results);
-
-                Some(TestResultData {
-                    file: file,
-                    time: time,
-                })
-            },
-        )
-    }
 }
 
 struct Node<'a> {
@@ -112,9 +78,7 @@ fn expand_globs(patterns: &Vec<String>) -> Result<Vec<PathBuf>> {
     Ok(files.to_vec())
 }
 
-fn get_test_file_results(
-    junit_xml_report_dir: &PathBuf,
-) -> Result<HashMap<std::path::PathBuf, f64>> {
+fn get_test_file_results(junit_xml_report_dir: &PathBuf) -> Result<HashMap<PathBuf, f64>> {
     let xml_glob_path_buf = Path::new(junit_xml_report_dir).join("**/*.xml");
     let xml_glob = match xml_glob_path_buf.to_str() {
         Some(x) => x,
@@ -127,13 +91,31 @@ fn get_test_file_results(
         let reader = BufReader::new(File::open(xml_path)?);
         let test_result_xml: TestResultXml = from_reader(reader)?;
 
-        for TestResultData { file, time } in test_result_xml {
-            file.map(|f| {
-                canonicalize(f).map(|normalized_file| {
-                    let total_time = test_file_results.entry(normalized_file).or_insert(0.0);
-                    *total_time += time;
-                })
-            });
+        let test_suites = test_result_xml.test_suites.unwrap_or(vec![TestSuite {
+            test_cases: test_result_xml.test_cases.unwrap_or(vec![]),
+            file: None,
+            time: 0.0,
+        }]);
+
+        let mut nearest_normalized_file;
+
+        for test_suite in test_suites {
+            nearest_normalized_file = test_suite.file.map(|f| canonicalize(f).ok()).flatten();
+
+            for test_case in test_suite.test_cases {
+                let normalized_file = test_case.file.map(|f| canonicalize(f).ok()).flatten();
+
+                let file = match (normalized_file, nearest_normalized_file.clone()) {
+                    (Some(a), _) => Some(a),
+                    (None, Some(b)) => Some(b),
+                    (None, None) => None,
+                };
+
+                if let Some(f) = file {
+                    let total_time = test_file_results.entry(f).or_insert(0.0);
+                    *total_time += test_case.time;
+                }
+            }
         }
     }
 
@@ -210,10 +192,3 @@ fn main() -> Result<()> {
 
     Ok(())
 }
-
-/*
-TODOS:
-
-- Test <testsuites><testsuite file="/foo" time="0.1"></testsuite></testsuites>
-- Test <testsuite><testcase file="./foo" time="0.1"></testcase></testsuite>
-*/
