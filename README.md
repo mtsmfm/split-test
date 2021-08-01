@@ -118,7 +118,7 @@ jobs:
         # Use continue-on-error to run tests even if test-report is not uploaded
         continue-on-error: true
       - run: |
-          curl -L --out split-test https://github.com/mtsmfm/split-test/releases/download/v0.3.0/split-test-x86_64-unknown-linux-gnu
+          curl -L --out split-test https://github.com/mtsmfm/split-test/releases/download/v1.0.0/split-test-x86_64-unknown-linux-gnu
           chmod +x split-test
       - run: bin/rspec --format progress --format RspecJunitFormatter --out report/rspec-${{ matrix.node_index }}.xml $(./split-test --junit-xml-report-dir report-tmp --node-index ${{ matrix.node_index }} --node-total 3 --tests-glob 'spec/**/*_spec.rb' --debug)
       - uses: actions/upload-artifact@v2
