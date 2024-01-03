@@ -128,3 +128,50 @@ fn test_cypress_report() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[test]
+fn test_multiple_tests_glob_arg() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("split-test")?;
+
+    cmd.current_dir("tests/fixtures/minitest")
+        .arg("--junit-xml-report-dir")
+        .arg("report")
+        .arg("--node-index")
+        .arg("0")
+        .arg("--node-total")
+        .arg("1")
+        .arg("--tests-glob")
+        .arg("a_test.rb")
+        .arg("--tests-glob")
+        .arg("b_test.rb");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("a_test.rb"))
+        .stdout(predicate::str::contains("b_test.rb"))
+        .stdout(predicate::str::contains("c_test.rb").not())
+        .stderr(predicate::str::is_empty());
+
+    cmd = Command::cargo_bin("split-test")?;
+
+    cmd.current_dir("tests/fixtures/minitest")
+        .arg("--junit-xml-report-dir")
+        .arg("report")
+        .arg("--node-index")
+        .arg("0")
+        .arg("--node-total")
+        .arg("1")
+        .arg("--tests-glob")
+        .arg("b_test.rb")
+        .arg("--tests-glob")
+        .arg("c_test.rb");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("a_test.rb").not())
+        .stdout(predicate::str::contains("b_test.rb"))
+        .stdout(predicate::str::contains("c_test.rb"))
+        .stderr(predicate::str::is_empty());
+
+    Ok(())
+}
