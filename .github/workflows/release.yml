@@ -21,10 +21,10 @@ jobs:
           - target: x86_64-pc-windows-gnu
             os: ubuntu-latest
             extension: .exe
-          - target: x86_64-apple-darwin
-            os: ubuntu-latest
+          # - target: x86_64-apple-darwin
+          #   os: ubuntu-latest
           - target: aarch64-apple-darwin
-            os: ubuntu-latest
+            os: macos-latest
 
     runs-on: ${{ matrix.os }}
 
