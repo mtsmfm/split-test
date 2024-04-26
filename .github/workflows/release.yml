@@ -2,86 +2,38 @@ name: Release
 
 on:
   push:
+    branches: [main]
     tags:
       - "v*"
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
           - target: x86_64-pc-windows-gnu
             os: ubuntu-latest
             extension: .exe
-          - target: x86_64-apple-darwin
+          # - target: x86_64-apple-darwin
+          #   os: ubuntu-latest
+          - target: aarch64-apple-darwin
             os: macos-latest
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target=${{ matrix.target }}
-          use-cross: true
-      - uses: actions/upload-artifact@v1
-        with:
-          name: build-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/split-test${{ matrix.extension }}
-
-  create-release:
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - id: create-release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-      - run: |
-          echo '${{ steps.create-release.outputs.upload_url }}' > release_upload_url.txt
-      - uses: actions/upload-artifact@v1
-        with:
-          name: create-release
-          path: release_upload_url.txt
-
-  upload-release:
-    strategy:
-      matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - x86_64-apple-darwin
-        include:
-          - target: x86_64-pc-windows-gnu
-            extension: .exe
-    needs: [create-release]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v1
-        with:
-          name: create-release
-      - id: upload-url
-        run: |
-          echo "::set-output name=url::$(cat create-release/release_upload_url.txt)"
-      - uses: actions/download-artifact@v1
-        with:
-          name: build-${{ matrix.target }}
-      - run: find .
-      - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.upload-url.outputs.url }}
-          asset_path: build-${{ matrix.target }}/split-test${{ matrix.extension }}
-          asset_name: split-test-${{ matrix.target }}${{ matrix.extension }}
-          asset_content_type: application/octet-stream
+      - uses: actions/checkout@v4
+      - run: rustup update stable
+      - run: rustup default stable
+      - run: cargo install cross
+      - run: cross build --release --target=${{ matrix.target }}
+      - run: ls -l 'target/${{ matrix.target }}/release/split-test${{ matrix.extension }}'
+      - if: github.ref_type == 'tag'
+        run: gh release upload "$GITHUB_REF_NAME" 'target/${{ matrix.target }}/release/split-test${{ matrix.extension }}'
