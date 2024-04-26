@@ -34,8 +34,10 @@ jobs:
       - run: rustup default stable
       - run: cargo install cross
       - run: cross build --release --target=${{ matrix.target }}
-      - run: ls -l 'target/${{ matrix.target }}/release/split-test${{ matrix.extension }}'
+      - run: |
+          cp 'target/${{ matrix.target }}/release/split-test${{ matrix.extension }}' \
+             'target/split-test-${{ matrix.target }}${{ matrix.extension }}'
       - if: github.ref_type == 'tag'
-        run: gh release upload "$GITHUB_REF_NAME" 'target/${{ matrix.target }}/release/split-test${{ matrix.extension }}'
+        run: gh release upload "$GITHUB_REF_NAME" 'target/split-test-${{ matrix.target }}${{ matrix.extension }}'
         env:
           GITHUB_TOKEN: ${{ github.token }}
