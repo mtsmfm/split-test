@@ -37,3 +37,5 @@ jobs:
       - run: ls -l 'target/${{ matrix.target }}/release/split-test${{ matrix.extension }}'
       - if: github.ref_type == 'tag'
         run: gh release upload "$GITHUB_REF_NAME" 'target/${{ matrix.target }}/release/split-test${{ matrix.extension }}'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
