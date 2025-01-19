@@ -67,52 +67,24 @@ jobs:
     needs: [test-artifact]
     runs-on: ubuntu-latest
     steps:
-      - id: create-release
-        uses: actions/create-release@v1
+      - uses: actions/download-artifact@v4
+        with:
+          path: build
+          pattern: build-*
+      - run: |
+          for dir in build/*; do
+            if [ -f $dir/split-test.exe ]; then
+              mv $dir/split-test.exe split-test-${dir##build/build-}.exe
+            else
+              mv $dir/split-test split-test-${dir##build/build-}
+            fi
+          done
+      - uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
-      - run: |
-          echo '${{ steps.create-release.outputs.upload_url }}' > release_upload_url.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: create-release
-          path: release_upload_url.txt
-
-  upload-release:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    strategy:
-      matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - aarch64-unknown-linux-gnu
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
-        include:
-          - target: x86_64-pc-windows-gnu
-            extension: .exe
-    needs: [create-release]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: create-release
-      - id: upload-url
-        run: |
-          echo "url=$(cat create-release/release_upload_url.txt)" >> $GITHUB_OUTPUT
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-${{ matrix.target }}
-      - run: find .
-      - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.upload-url.outputs.url }}
-          asset_path: build-${{ matrix.target }}/split-test${{ matrix.extension }}
-          asset_name: split-test-${{ matrix.target }}${{ matrix.extension }}
-          asset_content_type: application/octet-stream
+          files: |
+            split-test-*

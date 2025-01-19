@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.0.1
+
+- Add arm binaries
+
 ## 1.0.0
 
 - Support cypress (mocha) format (mocha-junit-reporter)
