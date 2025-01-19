@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*"
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
@@ -13,7 +15,7 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
           - target: x86_64-pc-windows-gnu
-            os: ubuntu-latest
+            os: windows-latest
             extension: .exe
           - target: x86_64-apple-darwin
             os: macos-latest
@@ -21,22 +23,40 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target=${{ matrix.target }}
-          use-cross: true
-      - uses: actions/upload-artifact@v1
+          targets: ${{ matrix.target }}
+      - run: cargo build --release --target=${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/split-test${{ matrix.extension }}
 
-  create-release:
+  test-artifact:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-gnu
+            os: windows-latest
+            extension: .exe
+          - target: x86_64-apple-darwin
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
     needs: [build]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-${{ matrix.target }}
+      - run: chmod +x ./split-test${{ matrix.extension }}
+      - run: ./split-test${{ matrix.extension }} --help
+
+  create-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [test-artifact]
     runs-on: ubuntu-latest
     steps:
       - id: create-release
@@ -50,12 +70,13 @@ jobs:
           prerelease: false
       - run: |
           echo '${{ steps.create-release.outputs.upload_url }}' > release_upload_url.txt
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v4
         with:
           name: create-release
           path: release_upload_url.txt
 
   upload-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     strategy:
       matrix:
         target:
@@ -67,13 +88,13 @@ jobs:
     needs: [create-release]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v4
         with:
           name: create-release
       - id: upload-url
         run: |
-          echo "::set-output name=url::$(cat create-release/release_upload_url.txt)"
-      - uses: actions/download-artifact@v1
+          echo "url=$(cat create-release/release_upload_url.txt)" >> $GITHUB_OUTPUT
+      - uses: actions/download-artifact@v4
         with:
           name: build-${{ matrix.target }}
       - run: find .
