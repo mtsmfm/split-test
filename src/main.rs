@@ -1,5 +1,6 @@
 use anyhow::{bail, Result};
 use glob::glob;
+use std::fs::metadata;
 use log::Level::Debug;
 use log::{debug, log_enabled, warn};
 use quick_xml::de::from_reader;
@@ -88,6 +89,12 @@ fn get_test_file_results(junit_xml_report_dir: &PathBuf) -> Result<HashMap<PathB
     let mut test_file_results = HashMap::new();
 
     for xml_path in expand_globs(&vec![String::from(xml_glob)])? {
+        let metadata = metadata(&xml_path)?;
+        if metadata.len() == 0 {
+            warn!("Empty file: {}", xml_path.display());
+            continue;
+        }
+
         let reader = BufReader::new(File::open(xml_path)?);
         let test_result_xml: TestResultXml = from_reader(reader)?;
 

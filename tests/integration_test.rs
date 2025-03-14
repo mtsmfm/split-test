@@ -21,7 +21,8 @@ fn test_rspec_report() -> Result<(), Box<dyn std::error::Error>> {
         .stdout(predicate::str::contains("a_spec.rb"))
         .stdout(predicate::str::contains("b_spec.rb").not())
         .stdout(predicate::str::contains("c_spec.rb"))
-        .stderr(predicate::str::is_empty());
+        .stderr(predicate::function(|stderr: &str| stderr.lines().count() == 1))
+        .stderr(predicate::str::is_match(r"Empty file: .*empty\.xml").unwrap());
 
     cmd = Command::cargo_bin("split-test")?;
 
@@ -40,7 +41,8 @@ fn test_rspec_report() -> Result<(), Box<dyn std::error::Error>> {
         .stdout(predicate::str::contains("a_spec.rb").not())
         .stdout(predicate::str::contains("b_spec.rb"))
         .stdout(predicate::str::contains("c_spec.rb").not())
-        .stderr(predicate::str::is_empty());
+        .stderr(predicate::function(|stderr: &str| stderr.lines().count() == 1))
+        .stderr(predicate::str::is_match(r"Empty file: .*empty\.xml").unwrap());
 
     Ok(())
 }
