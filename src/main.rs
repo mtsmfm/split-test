@@ -88,8 +88,14 @@ fn get_test_file_results(junit_xml_report_dir: &PathBuf) -> Result<HashMap<PathB
     let mut test_file_results = HashMap::new();
 
     for xml_path in expand_globs(&vec![String::from(xml_glob)])? {
-        let reader = BufReader::new(File::open(xml_path)?);
-        let test_result_xml: TestResultXml = from_reader(reader)?;
+        let reader = BufReader::new(File::open(&xml_path)?);
+        let test_result_xml: TestResultXml = from_reader(reader).unwrap_or_else(|err| {
+            warn!("Failed to parse XML file {:?}: {}", xml_path, err);
+            TestResultXml {
+                test_suites: None,
+                test_cases: None,
+            }
+        });
 
         let test_suites = test_result_xml.test_suites.unwrap_or(vec![TestSuite {
             test_cases: test_result_xml.test_cases.unwrap_or(vec![]),
