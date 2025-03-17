@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.1.0
+
+- Ignore invalid XML files
+
 ## 1.0.1
 
 - Add arm binaries
