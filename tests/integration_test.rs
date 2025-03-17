@@ -175,3 +175,68 @@ fn test_multiple_tests_glob_arg() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[test]
+fn test_invalid_report() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("split-test")?;
+
+    cmd.current_dir("tests/fixtures/invalid")
+        .arg("--junit-xml-report-dir")
+        .arg(".")
+        .arg("--node-index")
+        .arg("0")
+        .arg("--node-total")
+        .arg("2")
+        .arg("--tests-glob")
+        .arg("**/*_spec.rb")
+        .arg("--debug");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("a_spec.rb"))
+        .stdout(predicate::str::contains("b_spec.rb").not())
+        .stderr(
+            predicate::str::is_match(
+                "Failed to parse XML file \".*/tests/fixtures/invalid/empty.xml\"",
+            )
+            .unwrap(),
+        )
+        .stderr(
+            predicate::str::is_match(
+                "Failed to parse XML file \".*/tests/fixtures/invalid/foo.xml\"",
+            )
+            .unwrap(),
+        );
+
+    cmd = Command::cargo_bin("split-test")?;
+
+    cmd.current_dir("tests/fixtures/invalid")
+        .arg("--junit-xml-report-dir")
+        .arg(".")
+        .arg("--node-index")
+        .arg("1")
+        .arg("--node-total")
+        .arg("2")
+        .arg("--tests-glob")
+        .arg("**/*_spec.rb")
+        .arg("--debug");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("a_spec.rb").not())
+        .stdout(predicate::str::contains("b_spec.rb"))
+        .stderr(
+            predicate::str::is_match(
+                "Failed to parse XML file \".*/tests/fixtures/invalid/empty.xml\"",
+            )
+            .unwrap(),
+        )
+        .stderr(
+            predicate::str::is_match(
+                "Failed to parse XML file \".*/tests/fixtures/invalid/foo.xml\"",
+            )
+            .unwrap(),
+        );
+
+    Ok(())
+}
