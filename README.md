@@ -80,23 +80,25 @@ $ rspec $(split-test --junit-xml-report-dir report --node-index 0 --node-total 2
 on: push
 
 jobs:
-  # Download test-report and save as test-report-tmp to use the exactly same test report across parallel jobs.
+  # Download test-report and save as tmp-test-report to use the exactly same test report across parallel jobs.
   download-test-report:
     runs-on: ubuntu-latest
     steps:
-      # Use dawidd6/action-download-artifact to download JUnit Format XML test report from another branch
-      # https://github.com/actions/download-artifact/issues/3
-      - uses: dawidd6/action-download-artifact@v2
+      # Use dawidd6/action-download-artifact to download JUnit Format XML test report from another branch.
+      # actions/download-artifact v4 has run-id option but doesn't provide straight forward way to download.
+      - uses: dawidd6/action-download-artifact@v9
         with:
           branch: main
-          name: test-report
+          name: test-report-.*
+          name_is_regexp: true
           workflow: ci.yml
           path: report
+          merge_multiple: true
         # Use continue-on-error to run tests even if test-report is not uploaded
         continue-on-error: true
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
-          name: test-report-tmp
+          name: tmp-test-report
           path: report
 
   test:
@@ -106,24 +108,24 @@ jobs:
       matrix:
         node_index: [0, 1, 2]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-          ruby-version: 3.0.0
-      - uses: actions/download-artifact@v2
+          ruby-version: 3.4
+      - uses: actions/download-artifact@v4
         with:
-          name: test-report-tmp
+          name: tmp-test-report
           path: report-tmp
         # Use continue-on-error to run tests even if test-report is not uploaded
         continue-on-error: true
       - run: |
-          curl -L --output split-test https://github.com/mtsmfm/split-test/releases/download/v1.0.0/split-test-x86_64-unknown-linux-gnu
+          curl -L --output split-test https://github.com/mtsmfm/split-test/releases/download/v1.1.0/split-test-x86_64-unknown-linux-gnu
           chmod +x split-test
       - run: bin/rspec --format progress --format RspecJunitFormatter --out report/rspec-${{ matrix.node_index }}.xml $(./split-test --junit-xml-report-dir report-tmp --node-index ${{ matrix.node_index }} --node-total 3 --tests-glob 'spec/**/*_spec.rb' --debug)
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
-          name: test-report
+          name: test-report-${{ matrix.node_index }}
           path: report
           if-no-files-found: error
         # Upload test-report on main branch only to avoid conflicting test report
