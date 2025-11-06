@@ -55,6 +55,20 @@ You'll get:
 
 Please be sure to increment `--node-index` arg.
 
+You can exclude specific test files from being split using the `--tests-exclude-glob` option:
+
+```
+$ split-test --junit-xml-report-dir report --node-index 0 --node-total 2 --tests-glob 'spec/**/*_spec.rb' --tests-exclude-glob 'spec/system/**/*_spec.rb'
+```
+
+This will include all files matching `spec/**/*_spec.rb` but exclude any files matching `spec/system/**/*_spec.rb`. This is useful when you want to run system specs separately from unit tests, as system specs typically take longer and may require different setup.
+
+You can also specify multiple exclude patterns by using the `--tests-exclude-glob` option multiple times:
+
+```
+$ split-test --junit-xml-report-dir report --node-index 0 --node-total 2 --tests-glob 'spec/**/*_spec.rb' --tests-exclude-glob 'spec/system/**/*_spec.rb' --tests-exclude-glob 'spec/integration/**/*_spec.rb'
+```
+
 You can use `--debug` option to make sure how it's grouped:
 
 ```

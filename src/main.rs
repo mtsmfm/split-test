@@ -21,6 +21,8 @@ struct Opt {
     #[structopt(long, required = true)]
     tests_glob: Vec<String>,
     #[structopt(long)]
+    tests_exclude_glob: Vec<String>,
+    #[structopt(long)]
     node_index: usize,
     #[structopt(long)]
     node_total: usize,
@@ -63,13 +65,23 @@ impl<'a> Node<'a> {
     }
 }
 
-fn expand_globs(patterns: &Vec<String>) -> Result<Vec<PathBuf>> {
+fn expand_globs(patterns: &Vec<String>, exclude_patterns: &Vec<String>) -> Result<Vec<PathBuf>> {
     let mut files = HashSet::new();
 
     for pattern in patterns {
         for path in glob(&pattern)? {
             files.insert(canonicalize(path?)?);
         }
+    }
+
+    if !exclude_patterns.is_empty() {
+        let mut exclude_files = HashSet::new();
+        for exclude_pattern in exclude_patterns {
+            for path in glob(&exclude_pattern)? {
+                exclude_files.insert(canonicalize(path?)?);
+            }
+        }
+        files = files.difference(&exclude_files).cloned().collect();
     }
 
     let mut files = files.into_iter().collect::<Vec<_>>();
@@ -87,7 +99,7 @@ fn get_test_file_results(junit_xml_report_dir: &PathBuf) -> Result<HashMap<PathB
 
     let mut test_file_results = HashMap::new();
 
-    for xml_path in expand_globs(&vec![String::from(xml_glob)])? {
+    for xml_path in expand_globs(&vec![String::from(xml_glob)], &vec![])? {
         let reader = BufReader::new(File::open(&xml_path)?);
         let test_result_xml: TestResultXml = from_reader(reader).unwrap_or_else(|err| {
             warn!("Failed to parse XML file {:?}: {}", xml_path, err);
@@ -146,7 +158,7 @@ fn main() -> Result<()> {
 
     let test_file_results = get_test_file_results(&args.junit_xml_report_dir)?;
 
-    let test_files = expand_globs(&args.tests_glob)?;
+    let test_files = expand_globs(&args.tests_glob, &args.tests_exclude_glob)?;
     if test_files.len() == 0 {
         bail!("Test file is not found. pattern: {:?}", args.tests_glob);
     }

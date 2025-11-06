@@ -240,3 +240,98 @@ fn test_invalid_report() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[test]
+fn test_exclude_glob() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("split-test")?;
+
+    // Test excluding specific files - should include a_test.rb and c_test.rb, exclude b_test.rb
+    cmd.current_dir("tests/fixtures/minitest")
+        .arg("--junit-xml-report-dir")
+        .arg("report")
+        .arg("--node-index")
+        .arg("0")
+        .arg("--node-total")
+        .arg("1")
+        .arg("--tests-glob")
+        .arg("*_test.rb")
+        .arg("--tests-exclude-glob")
+        .arg("b_test.rb");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("a_test.rb"))
+        .stdout(predicate::str::contains("b_test.rb").not())
+        .stdout(predicate::str::contains("c_test.rb"))
+        .stderr(predicate::str::is_empty());
+
+    // Test excluding with wildcard - exclude all files starting with 'a'
+    cmd = Command::cargo_bin("split-test")?;
+
+    cmd.current_dir("tests/fixtures/minitest")
+        .arg("--junit-xml-report-dir")
+        .arg("report")
+        .arg("--node-index")
+        .arg("0")
+        .arg("--node-total")
+        .arg("1")
+        .arg("--tests-glob")
+        .arg("*_test.rb")
+        .arg("--tests-exclude-glob")
+        .arg("a*_test.rb");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("a_test.rb").not())
+        .stdout(predicate::str::contains("b_test.rb"))
+        .stdout(predicate::str::contains("c_test.rb"))
+        .stderr(predicate::str::is_empty());
+
+    // Test with split across nodes and exclude
+    cmd = Command::cargo_bin("split-test")?;
+
+    cmd.current_dir("tests/fixtures/minitest")
+        .arg("--junit-xml-report-dir")
+        .arg("report")
+        .arg("--node-index")
+        .arg("0")
+        .arg("--node-total")
+        .arg("2")
+        .arg("--tests-glob")
+        .arg("*_test.rb")
+        .arg("--tests-exclude-glob")
+        .arg("c_test.rb");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("a_test.rb"))
+        .stdout(predicate::str::contains("b_test.rb").not())
+        .stdout(predicate::str::contains("c_test.rb").not())
+        .stderr(predicate::str::is_empty());
+
+    // Test with multiple exclude patterns - exclude both a_test.rb and c_test.rb
+    cmd = Command::cargo_bin("split-test")?;
+
+    cmd.current_dir("tests/fixtures/minitest")
+        .arg("--junit-xml-report-dir")
+        .arg("report")
+        .arg("--node-index")
+        .arg("0")
+        .arg("--node-total")
+        .arg("1")
+        .arg("--tests-glob")
+        .arg("*_test.rb")
+        .arg("--tests-exclude-glob")
+        .arg("a_test.rb")
+        .arg("--tests-exclude-glob")
+        .arg("c_test.rb");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("a_test.rb").not())
+        .stdout(predicate::str::contains("b_test.rb"))
+        .stdout(predicate::str::contains("c_test.rb").not())
+        .stderr(predicate::str::is_empty());
+
+    Ok(())
+}
