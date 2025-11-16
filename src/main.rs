@@ -180,6 +180,8 @@ fn main() -> Result<()> {
     }
 
     if log_enabled!(Debug) {
+        debug!("Total test count: {}", test_files.len());
+
         for (i, node) in nodes.iter().enumerate() {
             debug!(
                 "node {}: recorded_total_time: {}",
