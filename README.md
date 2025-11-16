@@ -71,7 +71,7 @@ $ split-test --junit-xml-report-dir . --node-index 1 --node-total 2 --tests-glob
 Pass the result to test command to run grouped tests:
 
 ```
-$ rspec $(split-test --junit-xml-report-dir report --node-index 0 --node-total 2 --tests-glob 'spec/**/*_spec.rb' --debug)
+$ rspec $(split-test --junit-xml-report-dir report --node-index 0 --node-total 2 --tests-glob 'spec/**/*_spec.rb')
 ```
 
 ### GitHub Actions
@@ -122,7 +122,7 @@ jobs:
       - run: |
           curl -L --output split-test https://github.com/mtsmfm/split-test/releases/download/v1.1.0/split-test-x86_64-unknown-linux-gnu
           chmod +x split-test
-      - run: bin/rspec --format progress --format RspecJunitFormatter --out report/rspec-${{ matrix.node_index }}.xml $(./split-test --junit-xml-report-dir report-tmp --node-index ${{ matrix.node_index }} --node-total 3 --tests-glob 'spec/**/*_spec.rb' --debug)
+      - run: bin/rspec --format progress --format RspecJunitFormatter --out report/rspec-${{ matrix.node_index }}.xml $(./split-test --junit-xml-report-dir report-tmp --node-index ${{ matrix.node_index }} --node-total 3 --tests-glob 'spec/**/*_spec.rb')
       - uses: actions/upload-artifact@v4
         with:
           name: test-report-${{ matrix.node_index }}
