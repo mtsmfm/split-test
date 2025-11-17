@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.2.0
+
+- Add exclude glob option (#13)
+- Add total test count to debug output (#14)
+
 ## 1.1.0
 
 - Ignore invalid XML files
